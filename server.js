@@ -39,4 +39,43 @@ app.get('/weather', async (req, res) => {
 });
 
 
-app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}/weather`));
+app.get('/alert', async (req, res) => {
+  const { city, country } = req.query;
+  if (!city || !country) return res.status(400).json({ error: 'Informe cidade e país.' });
+
+  try {
+    const data = await getWeather(city, country);
+    const temp = data.main?.temp ?? 0;
+
+    const alert = temp > 30 ? 'Quente' : temp < 10 ? 'Frio' : 'Agradável';
+
+    res.json({ city, temperature: temp, alert });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao obter dados do clima.' });
+  }
+});
+
+app.get('/multiple', async (req, res) => {
+  const { cities } = req.query;
+  if (!cities) return res.status(400).json({ error: 'Informe pelo menos uma cidade.' });
+
+  const cityList = cities.split(',');
+  const results = [];
+
+  try {
+    for (let city of cityList) {
+      const data = await getWeather(city.trim());
+      results.push({
+        city: city.trim(),
+        temperature: data.main?.temp ?? 0,
+        weather: data.weather?.[0]?.description ?? 'Desconhecido'
+      });
+    }
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao consultar API para múltiplas cidades.' });
+  }
+});
+
+
+app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
